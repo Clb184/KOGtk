@@ -19,7 +19,7 @@ typedef uint64_t QWORD;
 typedef std::map<std::string, std::string> Keywords;
 typedef std::map<uint8_t, std::string> InsMap;
 typedef std::map<uint32_t,uint32_t> Address;
-typedef std::map<std::string, DWORD> constMap;
+typedef std::map<std::string, int> constMap;
 typedef std::map<std::string, DWORD> addMap;
 
 std::string readWord(FILE*);
@@ -28,6 +28,97 @@ std::string readWord(char*);
 void readStr(FILE*&);
 
 long int readNum(FILE*);
+
+inline bool validChar(char c)
+{
+	return(c >= 'A' && c <= 'Z')
+		|| (c >= 'a' && c <= 'z')
+		|| (c >= '0' && c <= '9')
+		|| c == '_'
+		|| c == '-';
+}
+inline bool blankSpace(char c)
+{
+	return c == ' ' || c == '	' || c == '\n';
+}
+inline int getNumber(char* a, int& pos, DWORD l)
+{
+	//char c = -1;
+	bool bin = false, hex = false, dec = false, readsign = false;
+	std::string n = ""; char ch;
+	while (!blankSpace(a[pos]) && a[pos])
+	{
+		if (a[pos] == '0' && !bin && !hex && !dec)
+		{
+			n.push_back(a[pos]);
+			pos++;
+			if (a[pos] == 'b')
+			{
+				bin = true;
+				n.push_back(a[pos]);
+				pos++;
+			}
+			else if (a[pos] == 'x')
+			{
+
+				hex = true;
+				n.push_back(a[pos]);
+				pos++;
+			}
+		}
+		if (bin)
+		{
+			if (a[pos] == '0' || a[pos] == '1')
+			{
+				n.push_back(a[pos]);
+			}
+			else
+			{
+				printf("Error on line %d: Binary numbers only consists on 0s and 1s.", l);
+			}
+		}
+		else if (hex)
+		{
+
+			if ((a[pos] >= '0' && a[pos] <= '9') || (a[pos] >= 'a' && a[pos] <= 'f') || (a[pos] >= 'A' && a[pos] <= 'F'))
+			{
+				n.push_back(a[pos]);
+			}
+			else
+			{
+				printf("Error on line %d: Hexadecimal number digits are from 0 to 9 and A to F.\n", l);
+				exit(-1);
+			}
+		}
+		else if (a[pos] == '-' || (a[pos] >= '0' && a[pos] <= '9'))
+		{
+			dec = true;
+			if (!readsign && a[pos] == '-')
+			{
+				n.push_back(a[pos]);
+				readsign = true;
+			}
+			else if (a[pos] == '-')
+			{
+				printf("Error on line %d: Sign has been readen before.\n", l);
+				exit(-1);
+			}
+			else
+			{
+				n.push_back(a[pos]);
+			}
+		}
+		else
+		{
+			printf("Error on line %d: Not valid number.\n", l);
+			exit(-1);
+		}
+		pos++;
+		ch = a[pos];
+	}
+	return std::stoi(n, nullptr, 0);
+}
+
 
 static Keywords directives
 {
@@ -43,11 +134,11 @@ static Keywords directives
 	*/
 
 
-	{"define", "define"},
-	{"DEFINE", "DEFINE"},
+	{"#define", "#define"},
+	{"#DEFINE", "#DEFINE"},
 
-	{"include", "include"},
-	{"INCLUDE", "INCLUDE"}
+	{"#include", "#include"},
+	{"#INCLUDE", "#INCLUDE"}
 };
 
 

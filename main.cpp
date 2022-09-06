@@ -1,5 +1,6 @@
 #include "main_libs.h"
 #include "SCLDecode.h"
+#include "SCLEncode.h"
 #include "wav_pos.h"
 
 void printUse()
@@ -29,6 +30,8 @@ int main()
 		SCLDecode(fName.c_str());
 		break;
 	case 'c':
+		printf("File out: "); std::cin >> out;
+		SCLEncode(fName.c_str(), out.c_str());
 		break;
 	}
 }
