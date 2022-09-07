@@ -45,8 +45,12 @@ inline int getNumber(char* a, int& pos, DWORD l)
 {
 	//char c = -1;
 	bool bin = false, hex = false, dec = false, readsign = false;
-	std::string n = ""; char ch;
-	while (!blankSpace(a[pos]) && a[pos])
+	std::string n = ""; char ch = a[pos];
+	while (blankSpace(a[pos]))
+	{
+		pos++;
+	}
+	while (!blankSpace(a[pos]) && a[pos] && a[pos] != ',')
 	{
 		if (a[pos] == '0' && !bin && !hex && !dec)
 		{
@@ -65,6 +69,10 @@ inline int getNumber(char* a, int& pos, DWORD l)
 				n.push_back(a[pos]);
 				pos++;
 			}
+			else if (blankSpace(a[pos]) || !a[pos] || a[pos] == ',')
+			{
+				break;
+			}
 		}
 		if (bin)
 		{
@@ -74,7 +82,8 @@ inline int getNumber(char* a, int& pos, DWORD l)
 			}
 			else
 			{
-				printf("Error on line %d: Binary numbers only consists on 0s and 1s.", l);
+				printf("Error on line %d: Binary numbers only consists on 0s and 1s.\n", l);
+				exit(-1);
 			}
 		}
 		else if (hex)
@@ -135,10 +144,7 @@ static Keywords directives
 
 
 	{"#define", "#define"},
-	{"#DEFINE", "#DEFINE"},
-
-	{"#include", "#include"},
-	{"#INCLUDE", "#INCLUDE"}
+	{"#include", "#include"}
 };
 
 
