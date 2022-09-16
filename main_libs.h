@@ -10,6 +10,17 @@
 
 #define SCL_MAXENM 50
 
+#define VIVIT    0x0
+#define MILIA	 0x1
+#define MEI_MAI	 0x2
+#define GATES	 0x3
+#define MARIE	 0x4
+#define ERICH	 0x5
+#define MORGAN	 0x6
+#define MUSE	 0x7
+#define YUUKA	 0x8
+
+
 
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
@@ -29,6 +40,20 @@ void readStr(FILE*&);
 
 long int readNum(FILE*);
 
+inline bool validKOGChar(std::string str)
+{
+	return str == "VIVIT" ||
+		str == "Milia" ||
+		str == "Mei_Mai" ||
+		str == "Gates" ||
+		str == "Marie" ||
+		str == "Erich" ||
+		str == "Morgan" ||
+		str == "Muse" ||
+		str == "Yuuka";
+
+}
+
 inline bool validChar(char c)
 {
 	return(c >= 'A' && c <= 'Z')
@@ -39,26 +64,54 @@ inline bool validChar(char c)
 }
 inline bool blankSpace(char c)
 {
-	return c == ' ' || c == '	' || c == '\n';
+	return c == ' ' || c == '	';
 }
+
+inline bool validDigit(BYTE type, char c)
+{
+	bool ret = false;
+	if (type & (BYTE)0b1) //Dec
+	{
+		ret = (c >= '0' && c <= '9' || c == '-');
+	}
+	if (type & (BYTE)0b10) //Hex
+	{
+
+		ret = ((c >= '0' && c <= '9') ||
+			(c >= 'a' && c <= 'f') ||
+			(c >= 'A' && c <= 'F'));
+	}
+	if (type & (BYTE)0b100) // Bin
+	{
+
+		ret = (c == '0' || c == '1');
+	}
+	return ret;
+}
+
+extern constMap globalConst; 
+extern constMap localConst;
+
 inline int getNumber(char* a, int& pos, DWORD l)
 {
 	//char c = -1;
-	bool bin = false, hex = false, dec = false, readsign = false;
+	bool bin = false, hex = false, dec = false, readsign = false, isConstant = false;
+	BYTE flag = 0b1;
 	std::string n = ""; char ch = a[pos];
 	while (blankSpace(a[pos]))
 	{
 		pos++;
-	}
-	while (!blankSpace(a[pos]) && a[pos] && a[pos] != ',')
+	}ch = a[pos];
+	while (validDigit(flag, a[pos]) || validChar(a[pos]))
 	{
-		if (a[pos] == '0' && !bin && !hex && !dec)
+		if (a[pos] == '0' && !bin && !hex && !dec && !isConstant)
 		{
 			n.push_back(a[pos]);
 			pos++;
 			if (a[pos] == 'b')
 			{
 				bin = true;
+				flag |= 0b100;
 				n.push_back(a[pos]);
 				pos++;
 			}
@@ -66,10 +119,11 @@ inline int getNumber(char* a, int& pos, DWORD l)
 			{
 
 				hex = true;
+				flag |= 0b10;
 				n.push_back(a[pos]);
 				pos++;
 			}
-			else if (blankSpace(a[pos]) || !a[pos] || a[pos] == ',')
+			else if (!validDigit(flag, a[pos]))
 			{
 				break;
 			}
@@ -89,7 +143,9 @@ inline int getNumber(char* a, int& pos, DWORD l)
 		else if (hex)
 		{
 
-			if ((a[pos] >= '0' && a[pos] <= '9') || (a[pos] >= 'a' && a[pos] <= 'f') || (a[pos] >= 'A' && a[pos] <= 'F'))
+			if ((a[pos] >= '0' && a[pos] <= '9') || 
+				(a[pos] >= 'a' && a[pos] <= 'f') || 
+				(a[pos] >= 'A' && a[pos] <= 'F'))
 			{
 				n.push_back(a[pos]);
 			}
@@ -100,30 +156,60 @@ inline int getNumber(char* a, int& pos, DWORD l)
 			}
 		}
 		else if (a[pos] == '-' || (a[pos] >= '0' && a[pos] <= '9'))
+			{
+				dec = true;
+				if (!readsign && a[pos] == '-')
+				{
+					n.push_back(a[pos]);
+					readsign = true;
+				}
+				else if (readsign && a[pos] == '-')
+				{
+					printf("Error on line %d: Sign has been readen before.\n", l);
+					exit(-1);
+				}
+				else
+				{
+					n.push_back(a[pos]);
+				}
+			}
+		else if (validChar(a[pos]))
 		{
-			dec = true;
-			if (!readsign && a[pos] == '-')
+			isConstant = true;
+			while (validChar(a[pos]))
 			{
 				n.push_back(a[pos]);
-				readsign = true;
+				pos++;
 			}
-			else if (a[pos] == '-')
-			{
-				printf("Error on line %d: Sign has been readen before.\n", l);
-				exit(-1);
-			}
-			else
-			{
-				n.push_back(a[pos]);
-			}
+			pos--;
+			bin = false;
+			hex = false;
+			dec = false;
 		}
-		else
+		else if(!isConstant)
 		{
 			printf("Error on line %d: Not valid number.\n", l);
 			exit(-1);
 		}
 		pos++;
 		ch = a[pos];
+	}
+	if (isConstant)
+	{
+		bool foundConst = false;
+		if (globalConst.find(n) != globalConst.end())
+		{
+			return globalConst[n];
+		}
+		else if (localConst.find(n) != localConst.end())
+		{
+			return localConst[n];
+		}
+		else
+		{
+			printf("Error on line %d: Constant not found.\n", l);
+			exit(-1);
+		}
 	}
 	return std::stoi(n, nullptr, 0);
 }
@@ -144,6 +230,8 @@ static Keywords directives
 
 
 	{"#define", "#define"},
+	{"#endheader", "#endheader"},
+	{"#header", "#header"},
 	{"#include", "#include"}
 };
 

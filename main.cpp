@@ -59,13 +59,23 @@ int main(int argc, char* argv[])
 		//printf("%s, %s, %s\n", argv[1], argv[2], argv[3]);
 		if (par == "sd")//par == "sd")
 		{
-			printf("Still building...");
+			//printf("Still building...");
+			SCLDecode(argv[2]);
 			return 0;
 		}
 		else if (par == "sc")//par == "sc")
 		{
-			printf("Still building...");
-			return 0;
+			//printf("Still building...");
+
+			if (argv[3] == NULL)
+			{
+				printf("Parameters for sc: input output");
+			}
+			else
+			{
+				SCLEncode(argv[2], argv[3]);
+				return 0;
+			}
 		}
 		else if (par == "pg")//par == "pg")
 		{
