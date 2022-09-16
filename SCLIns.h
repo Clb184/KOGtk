@@ -1,5 +1,14 @@
 #pragma once
+/*
+===========SCLIns.h===============
 
+All of the defined constants here were taken from pbghogehoge's 
+Kioh Gyoku repository in https://github.com/pbghogehoge/kog/blob/master/Source/ScrBase.h,
+so, credits to them.
+
+==================================
+
+*/
 #define NOP                 0x30
 #define SET					0x31
 
