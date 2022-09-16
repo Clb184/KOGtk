@@ -1,6 +1,7 @@
 #include "SCLEncode.h"
 #include "SCLIns.h"
 
+FileMap openFiles;
 constMap globalConst;
 constMap localConst;
 subCont curSubr;
@@ -31,15 +32,17 @@ void SCLEncode(const char* in, const char* out)
 	FILE* s = fopen(out, "wb");
 	if (r == NULL)
 	{
-		printf("Couldn't open the file.\n");
+		printf("Couldn't open %s.\n", in);
 		exit(-1);
 	}
-	readFile(r, s);
+	std::string fName = in;
+	openFiles.insert({fName, fName});
+	readFile(r, s, false);
 	fclose(r);
 	fclose(s);
 }
 
-void readFile(FILE* f, FILE* out)
+void readFile(FILE* f, FILE* out, bool include)
 {
 	char line[0x100];
 	while (!feof(f))
@@ -57,42 +60,45 @@ void readFile(FILE* f, FILE* out)
 			ln++;
 		}
 	}
-
+	openFiles.empty();
 	DWORD endSeek = ln;
 	ln = 1; outPos = sizeof(SCLHeader); subIndex = outPos;
 	fseek(f, 0, SEEK_SET);
-	SCLHeader header;
-	memset(&header, 0xff, sizeof(SCLHeader));
-	header.SCLLvEnmCnt[0] = 0;
-	header.SCLLvEnmCnt[1] = 0;
-	header.SCLLvEnmCnt[2] = 0;
-	header.SCLLvEnmCnt[3] = 0;
-	for (int i = 0; i < KOG_CHAR; i++)
+	if (!include)
 	{
-		header.LTEntry[i].numTex = 0;
-	}
-	subCont::iterator it = curSubr.begin();
-	for (; it != curSubr.end(); ++it)
-	{
-		if (it->second.name == "TexEntry")
+		SCLHeader header;
+		memset(&header, 0xff, sizeof(SCLHeader));
+		header.SCLLvEnmCnt[0] = 0;
+		header.SCLLvEnmCnt[1] = 0;
+		header.SCLLvEnmCnt[2] = 0;
+		header.SCLLvEnmCnt[3] = 0;
+		for (int i = 0; i < KOG_CHAR; i++)
 		{
-			header.texInit = it->first;
-			break;
+			header.LTEntry[i].numTex = 0;
 		}
+		subCont::iterator it = curSubr.begin();
+		for (; it != curSubr.end(); ++it)
+		{
+			if (it->second.name == "TexEntry")
+			{
+				header.texInit = it->first;
+				break;
+			}
+		}
+		if (it == curSubr.end())
+		{
+			printf("Error in line %d: @TexEntry Subroutine not found.", ln);
+		}
+		while (ln < endSeek - 1)
+		{
+			fgets(line, sizeof(line), f);
+			setHeader(line, header);
+			ln++;
+		}
+		fwrite(&header, sizeof(SCLHeader), 1, out);
+		fseek(f, 0, SEEK_SET);
+		ln = 1; outPos = sizeof(SCLHeader); subIndex = outPos;
 	}
-	if (it == curSubr.end())
-	{
-		printf("Error in line %d: @TexEntry Subroutine not found.", ln);
-	}
-	while (ln < endSeek - 1)
-	{
-		fgets(line, sizeof(line), f);
-		setHeader(line, header);
-		ln++;
-	}
-	fwrite(&header, sizeof(SCLHeader), 1, out);
-	fseek(f, 0, SEEK_SET);
-	ln = 1; outPos = sizeof(SCLHeader); subIndex = outPos;
 	while (ln < endSeek - 1)
 	{
 		if (onHeader)
@@ -108,6 +114,7 @@ void readFile(FILE* f, FILE* out)
 			ln++;
 		}
 	}
+	openFiles.empty();
 }
 
 void getSubsLabs(char* l)
@@ -142,6 +149,24 @@ void getSubsLabs(char* l)
 			}
 			else if (onHeader = directives[str] == "#header")
 			{
+				while (blankSpace(l[pos]))
+				{
+					pos++;
+				}
+				if (l[pos] == '"')
+					pos++;
+				else
+				{
+					printf("Error on line %d: Start of string not found.\n");
+					exit(1);
+				}
+				str = "";
+				while (l[pos] != '"' && pos < 0x100)
+				{
+					str.push_back(l[pos]);
+					pos++;
+				}
+				includedFileAdd(str.c_str());
 				return;
 			}
 		}
@@ -479,6 +504,24 @@ void parseSCL(char* l, FILE* out)
 			}
 			else if (directives[str] == "#include")
 			{
+				while (blankSpace(l[pos]))
+				{
+					pos++;
+				}
+				if (l[pos] == '"')
+					pos++;
+				else
+				{
+					printf("Error on line %d: Start of string not found.\n");
+					exit(1);
+				}
+				str = "";
+				while (l[pos] != '"' && pos < 0x100)
+				{
+					str.push_back(l[pos]);
+					pos++;
+				}
+				includedFileParse(str.c_str(), out);
 				return;
 			}
 			else if (onHeader = directives[str] == "#header")
@@ -1168,4 +1211,74 @@ void skipHeader(char* l)
 	{
 		return;
 	}
+}
+/*
+void includeFile(const char* f, FILE* out)
+{
+	FILE* in = fopen(f, "r");
+	if (in == NULL)
+	{
+		printf("Couldn't open %s.\n", f);
+		exit(-1);
+	}
+	readFile(in, out, true);
+	fclose(in);
+}
+*/
+void includedFileAdd(const char* f)
+{
+	std::string fName = f;
+	if(openFiles.find(fName) == openFiles.end())
+		openFiles.insert({ fName, fName });
+	else
+	{
+		printf("Error on line %d: File %s has been included before.", ln, f);
+		exit(10);
+	}
+	FILE* in = fopen(f, "r");
+	DWORD prevline = ln; ln = 1;
+	if (in == NULL)
+	{
+		printf("Couldn't open %s.\n", f);
+		exit(-1);
+	}
+	char l[0x100];
+	while(!feof(in))
+	{
+
+		fgets(l, sizeof(l), in);
+		getSubsLabs(l);
+		ln++;
+	}
+	ln = prevline;
+	fclose(in);
+}
+
+void includedFileParse(const char* f, FILE* out)
+{
+	std::string fName = f;
+	if (openFiles.find(fName) == openFiles.end())
+		openFiles.insert({ fName, fName });
+	else
+	{
+		printf("Error on line %d: File %s has been included before.", ln, f);
+		exit(10);
+	}
+	FILE* in = fopen(f, "r");
+	DWORD prevline = ln; ln = 1;
+	if (in == NULL)
+	{
+		printf("Couldn't open %s.\n", f);
+		exit(-1);
+	}
+	char l[0x100];
+	while (!feof(in))
+	{
+
+		fgets(l, sizeof(l), in);
+		parseSCL(l, out);
+		ln++;
+	}
+	ln = prevline;
+	fclose(in);
 }

@@ -2,7 +2,7 @@
 #include "main_libs.h"
 
 void SCLEncode(const char* in, const char* out);
-void readFile(FILE* f, FILE*);
+void readFile(FILE* f, FILE*, bool);
 
 void getSubsLabs(char* );
 void parseSCL(char*, FILE*);
@@ -10,6 +10,9 @@ void parseSCL(char*, FILE*);
 void setHeader(char* l, SCLHeader&);
 void skipHeader(char* l);
 
+
+void includedFileAdd(const char* f);
+void includedFileParse(const char* f, FILE*);
 
 struct Subroutine
 {
@@ -33,3 +36,4 @@ struct Subroutine
 };
 
 typedef std::map<DWORD, Subroutine> subCont;
+typedef std::map<std::string, std::string> FileMap;
