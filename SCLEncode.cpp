@@ -89,7 +89,7 @@ void readFile(FILE* f, FILE* out, bool include)
 		{
 			printf("Error in line %d: @TexEntry Subroutine not found.", ln);
 		}
-		while (ln < endSeek - 1)
+		while (ln < endSeek)
 		{
 			fgets(line, sizeof(line), f);
 			setHeader(line, header);
@@ -99,7 +99,7 @@ void readFile(FILE* f, FILE* out, bool include)
 		fseek(f, 0, SEEK_SET);
 		ln = 1; outPos = sizeof(SCLHeader); subIndex = outPos;
 	}
-	while (ln < endSeek - 1)
+	while (ln < endSeek)
 	{
 		if (onHeader)
 		{
@@ -145,10 +145,6 @@ void getSubsLabs(char* l)
 			}
 			else if (directives[str] == "#include")
 			{
-				return;
-			}
-			else if (onHeader = directives[str] == "#header")
-			{
 				while (blankSpace(l[pos]))
 				{
 					pos++;
@@ -167,6 +163,10 @@ void getSubsLabs(char* l)
 					pos++;
 				}
 				includedFileAdd(str.c_str());
+				return;
+			}
+			else if (onHeader = directives[str] == "#header")
+			{
 				return;
 			}
 		}
