@@ -61,6 +61,7 @@ void SCLDecode(const char* f)
 		i->second = j;
 		j++;
 	}
+	printHeader(header, sub);
 	readIns(fp, sub, lab, header.texInit);
 	fclose(fp);
 }
@@ -93,18 +94,21 @@ void readIns(FILE* in, Address sub, Address lab, DWORD texEntry)
 	{
 		pos = ftell(in);
 		if (pos == texEntry)
-			std::cout << "TexEntry:" << "\n";
+			std::cout << "@TexEntry:" << "\n";
 		if (sub.find(pos) != sub.end())
-			std::cout << "\n@Sub" << sub[pos] <<  ":\n";
+		{
+			if (pos >= sizeof(SCLHeader))
+				printf("END \n");
+			std::cout << "\n@Sub" << sub[pos] << ":\n";
+		}
 		if (lab.find(pos) != lab.end())
 			std::cout << ".lab_" << lab[pos] << ":\n";
 
 
 		fread(&cmd, 1, 1, in);
 		if (insNames.find(cmd) != insNames.end())
-		{
 			std::cout << "	" << insNames[cmd] << " ";
-		}
+
 		switch (cmd)
 		{
 		case NOP: W
@@ -302,7 +306,7 @@ void getAddress( FILE* f, Address& sub, Address& lab)
 			break;
 		case ESET: GSUB
 			break;
-		case RET: AC(1) add = ftell(f); if (sub.find(add) == sub.end()) { sub.insert({ add, add }); }
+		case RET: AC(1) //add = ftell(f); if (sub.find(add) == sub.end()) { sub.insert({ add, add }); }
 			break;
 		case ANM: AC(2)
 			break;
@@ -379,7 +383,7 @@ void getAddress( FILE* f, Address& sub, Address& lab)
 			break;
 		case AJMP: GLAB
 			break;
-		case EXIT:
+		case EXIT: //add = ftell(f); if (sub.find(add) == sub.end()) { sub.insert({ add, add }); }
 		case LPOP:
 			break;
 		case LJMP: GLAB
@@ -415,4 +419,84 @@ void getAddress( FILE* f, Address& sub, Address& lab)
 			}
 		}
 	}
+}
+
+void printHeader(SCLHeader header, Address sub)
+{
+	printf("#header\n");
+	printf("@SCLLevels:");
+	printf("\n	@SCL1:");
+	for (int i = 0; i < header.SCLLvEnmCnt[0]; i++)
+	{
+		std::cout << "\n	Sub" << sub[header.SCL_lv1[i]];
+		if (i < header.SCLLvEnmCnt[0] - 1)
+			std::cout << ",";
+	}
+	printf("\n\n	@SCL2:");
+	for (int i = 0; i < header.SCLLvEnmCnt[1]; i++)
+	{
+		std::cout << "\n	Sub" << sub[header.SCL_lv2[i]];
+		if (i < header.SCLLvEnmCnt[1] - 1)
+			std::cout << ",";
+	}
+	printf("\n\n	@SCL3:");
+	for (int i = 0; i < header.SCLLvEnmCnt[2]; i++)
+	{
+
+		std::cout << "\n	Sub" << sub[header.SCL_lv3[i]];
+		if (i < header.SCLLvEnmCnt[2] - 1)
+			std::cout << ",";
+	}
+	printf("\n\n	@SCL4:");
+	for (int i = 0; i < header.SCLLvEnmCnt[3]; i++)
+	{
+		std::cout << "\n	Sub" << sub[header.SCL_lv4[i]];
+		if (i < header.SCLLvEnmCnt[3] - 1)
+			std::cout << ",";
+	}
+	printf("\n");
+	for (int i = 0; i < KOG_CHAR - 1; i++)
+	{
+		printf("\n@");
+		switch (i)
+		{
+		case VIVIT:
+			printf("VIVIT"); break;
+		case MILIA:
+			printf("Milia"); break;
+		case MEI_MAI:
+			printf("Mei_Mai"); break;
+		case GATES:
+			printf("Gates"); break;
+		case MARIE:
+			printf("Marie"); break;
+		case ERICH:
+			printf("Erich"); break;
+		case MORGAN:
+			printf("Morgan"); break;
+		case MUSE:
+			printf("Muse"); break;
+		case YUUKA:
+			printf("Yuuka"); break;
+		}
+		printf(":");
+		std::cout << "\nSub" << sub[header.Lv1Att[i]] << ",";
+		std::cout << "\nSub" << sub[header.Lv2Att[i]] << ",";
+		std::cout << "\nSub" << sub[header.BossAtt[i]] << ",";
+		std::cout << "\nSub" << sub[header.ComboAtt[i]] << ",";
+		std::cout << "\nSub" << sub[header.Lv1Anm[i]] << ",";
+		std::cout << "\nSub" << sub[header.Lv2Anm[i]] << ",";
+		std::cout << "\nSub" << sub[header.BossAnm[i]] << ",";
+		std::cout << "\nSub" << sub[header.WinAnm[i]];
+		std::cout << "\n\n@ExTex:";
+		for (int j = 0; j < header.LTEntry[i].numTex; j++)
+		{
+			std::cout << "\nSub" << sub[header.LTEntry[i].LoadExTexAdd[j]];
+			if (j < header.LTEntry[i].numTex - 1)
+				printf(",");
+		}
+		printf("\n");
+	}
+
+	printf("\n#endheader\n\n");
 }
