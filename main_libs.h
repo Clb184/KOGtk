@@ -91,7 +91,9 @@ inline bool validDigit(BYTE type, char c)
 
 extern constMap globalConst; 
 extern constMap localConst;
+extern std::string currentfile;
 
+#define PRNTFILEERR std::cout << currentfile << ": ";
 inline int getNumber(char* a, int& pos, DWORD l)
 {
 	//char c = -1;
@@ -136,7 +138,8 @@ inline int getNumber(char* a, int& pos, DWORD l)
 			}
 			else
 			{
-				printf("Error on line %d: Binary numbers only consists on 0s and 1s.\n", l);
+				PRNTFILEERR
+				printf("Error on line %d: Binary numbers only consist on 0s and 1s.\n", l);
 				exit(-1);
 			}
 		}
@@ -151,6 +154,7 @@ inline int getNumber(char* a, int& pos, DWORD l)
 			}
 			else
 			{
+				PRNTFILEERR
 				printf("Error on line %d: Hexadecimal number digits are from 0 to 9 and A to F.\n", l);
 				exit(-1);
 			}
@@ -165,6 +169,7 @@ inline int getNumber(char* a, int& pos, DWORD l)
 				}
 				else if (readsign && a[pos] == '-')
 				{
+					PRNTFILEERR
 					printf("Error on line %d: Sign has been readen before.\n", l);
 					exit(-1);
 				}
@@ -188,6 +193,7 @@ inline int getNumber(char* a, int& pos, DWORD l)
 		}
 		else if(!isConstant)
 		{
+			PRNTFILEERR
 			printf("Error on line %d: Not valid number.\n", l);
 			exit(-1);
 		}
@@ -196,18 +202,18 @@ inline int getNumber(char* a, int& pos, DWORD l)
 	}
 	if (isConstant)
 	{
-		bool foundConst = false;
-		if (globalConst.find(n) != globalConst.end())
-		{
-			return globalConst[n];
-		}
-		else if (localConst.find(n) != localConst.end())
+		if (localConst.find(n) != localConst.end())
 		{
 			return localConst[n];
 		}
+		else if (globalConst.find(n) != globalConst.end())
+		{
+			return globalConst[n];
+		}
 		else
 		{
-			printf("Error on line %d: Constant not found.\n", l);
+			PRNTFILEERR
+				printf("Error on line %d: Constant ", l); std::cout << n << " not found.\n";
 			exit(-1);
 		}
 	}

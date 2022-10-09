@@ -265,6 +265,7 @@ void readIns(FILE* in, Address sub, Address lab, DWORD texEntry)
 		}
 		printf("\n");
 	}
+	printf("END");
 }
 
 #define AC(x) fseek(f, x, SEEK_CUR);

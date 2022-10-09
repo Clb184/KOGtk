@@ -10,6 +10,10 @@ void parseSCL(char*, FILE*);
 void setHeader(char* l, SCLHeader&);
 void skipHeader(char* l);
 
+inline bool skipComment(char c)
+{
+	return c == ';';
+}
 
 void includedFileAdd(const char* f);
 void includedFileParse(const char* f, FILE*);
