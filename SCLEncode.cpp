@@ -606,7 +606,9 @@ void parseSCL(char* l, FILE* out)
 						str.push_back(l[pos]);
 						pos++;
 					}
+#ifdef CLB_DEBUG
 					std::cout << l[pos] << "\n";
+#endif
 					for (InsMap::iterator i = insNames.begin(); i != insNames.end(); i++)
 					{
 						if (i->second == str || str == "END")
@@ -845,7 +847,11 @@ void parseSCL(char* l, FILE* out)
 				exit(4);
 			}
 		}
-		if (l[pos] == '\n' || skipComment(l[pos]) || blankSpace(l[pos]))
+		while (blankSpace(l[pos]))
+		{
+			pos++;
+		}
+		if (l[pos] == '\n' || skipComment(l[pos]) || l[pos] == 0x00)
 		{
 			return;
 		}
@@ -1178,6 +1184,11 @@ void setHeader(char* l, SCLHeader& h)
 		return;
 	}
 
+
+	while (blankSpace(l[pos]))
+	{
+		pos++;
+	}
 	if (l[pos] == '\n' || skipComment(l[pos]))
 	{
 		return;
